@@ -224,25 +224,26 @@ Board.prototype.DrawLock_ = function(row, column, colors) {
   
   // The circle is embedded in the hexagon; each edge of the hexagon
   // is a tangent line segment whose center is on the circle.
-  //          1 ^
-  //          /   \         _ca is r long
-  //        /      /\       Lacb is 2Pi/12, Lcab is a right angle
-  //    0 /      r/  _\b    tan(Lacb) = _ab/r
-  //     |       / _-  |    _ab = r * tan(2Pi/12)
-  //     |      c------|a   b = (c[0] + r, c[1] + r*tan(2Pi/12))
-  //     |          r  |
+  //          1 ^ b
+  //          / | \ a       ca is r long
+  //        /   |  /\       Lcab is a right angle
+  //    0 /     |r/   \     A regular hexagon is made up of 6 equilateral
+  //     |      |/     |    triangles, so ab is half the length of cb.
+  //     |      c------|a   Use the pythagorean theorem to get...
+  //     |          r  |    cb = sqrt(4/3) * r
   //    5 \           / 3
   //        \       /
   //          \   /
   //            v 4
-  const dy = radius * 0.58; // Math.tan(Math.Pi / 6.0) * radius;
+  const dy = Math.sqrt(4.0/3.0) * radius;
+  const half_dy = dy / 2.0;
   var points = [
-	  center.Add(-radius, -dy),
-	  center.Add(0, -radius-3),  // why the adjustment?
-	  center.Add(radius, -dy),
-	  center.Add(radius, dy),
-	  center.Add(0, radius+3),
-	  center.Add(-radius, dy)
+	  center.Add(-radius, -half_dy),
+	  center.Add(0, -dy),
+	  center.Add(radius, -half_dy),
+	  center.Add(radius, half_dy),
+	  center.Add(0, dy),
+	  center.Add(-radius, half_dy)
   ];
   console.log(points);
 
