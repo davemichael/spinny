@@ -120,22 +120,24 @@ function Board(rows, cols, seed, context) {
 }
 
 Board.prototype.RotateBall = function(row, col, direction) {
-  var ball = this_.balls[rowCol.row][rowCol.col];
+  var ball = this_.balls[row][col];
   if (ball.IsLocked()) return;
   var oldColors = ball.GetColors();
   ball.Rotate(direction);
-  this_.Animate(rowCol.row, rowCol.col, oldColors, direction);
+  this_.Animate(row, col, oldColors, direction);
 }
 
 Board.prototype.ToggleLock = function(row, col) {
-  var ball = this_.balls[rowCol.row][rowCol.col];
-  var colors = ball.GetColors();
+  const ball = this_.balls[row][col];
+  const colors = ball.GetColors();
   is_locked = ball.ToggleLock();
   if (is_locked) {
-    this_.DrawLock_(rowCol.row, rowCol.col, colors);
+    // TODO: Animate
+    this_.DrawLock_(row, col, colors);
   } else {
-    this_.DrawLock_(rowCol.row, rowCol.col, [kBackgroundColor, kBackgroundColor, kBackgroundColor]);
-    this_.DrawBall_(rowCol.row, rowCol.col, colors);
+    const all_bg = [kBackgroundColor, kBackgroundColor, kBackgroundColor];
+    this_.DrawLock_(row, col, all_bg);
+    this_.DrawBall_(row, col, colors);
   }
 }
 
@@ -185,29 +187,32 @@ Board.prototype.DrawBall_ = function(row, column, colors, rotation) {
   
   // Full circle with first color.
   this.context.beginPath();
+  this.context.strokeStyle = colors[0];
+  this.context.fillStyle = colors[0];
   this.context.moveTo(center.x, center.y);
   this.context.arc(center.x, center.y, radius, 0, 2*Math.PI, false);
   this.context.lineTo(center.x, center.y);
   this.context.closePath();
-  this.context.fillStyle = colors[0];
   this.context.fill();
 
   // Pie piece with 2nd and 3rd color.
-  var oneThird = (2*Math.Pi)/3.0;
+  const oneThird = (2*Math.Pi)/3.0;
   this.context.beginPath(); 
+  this.context.strokeStyle = colors[1];
+  this.context.fillStyle = colors[1];
   this.context.moveTo(center.x, center.y);
   this.context.arc(center.x, center.y, radius, startAngle, startAngle + Math.PI*(2.0/3.0), false);
   this.context.lineTo(center.x, center.y);
   this.context.closePath();
-  this.context.fillStyle = colors[1];
   this.context.fill();
 
   this.context.beginPath(); 
+  this.context.strokeStyle = colors[2];
+  this.context.fillStyle = colors[2];
   this.context.moveTo(center.x, center.y);
   this.context.arc(center.x, center.y, radius, startAngle + Math.PI*(2.0/3.0), startAngle + Math.PI*(4.0/3.0), false);
   this.context.lineTo(center.x, center.y);
   this.context.closePath();
-  this.context.fillStyle = colors[2];
   this.context.fill();
 
   this.context.restore();
@@ -216,7 +221,6 @@ Board.prototype.DrawBall_ = function(row, column, colors, rotation) {
 Board.prototype.DrawLock_ = function(row, column, colors) {
   this.context.save();
   var center = this.CenterPoint(row, column);
-  var startAngle = (-1.0/6.0)*Math.PI;
   
   // The circle is embedded in the hexagon; each edge of the hexagon
   // is a tangent line segment whose center is on the circle.
@@ -231,34 +235,50 @@ Board.prototype.DrawLock_ = function(row, column, colors) {
   //        \       /
   //          \   /
   //            v 4
-  ab_dist
-  points = [center.Add(-horizontalSpacing/2, )]]
+  const dy = radius * 0.58; // Math.tan(Math.Pi / 6.0) * radius;
+  var points = [
+	  center.Add(-radius, -dy),
+	  center.Add(0, -radius-3),  // why the adjustment?
+	  center.Add(radius, -dy),
+	  center.Add(radius, dy),
+	  center.Add(0, radius+3),
+	  center.Add(-radius, dy)
+  ];
+  console.log(points);
 
   // Full hex with first color.
   this.context.beginPath();
-  this.context.moveTo(center.x, center.y);
-  this.context.arc(center.x, center.y, radius, 0, 2*Math.PI, false);
-  this.context.lineTo(center.x, center.y);
-  this.context.closePath();
+  this.context.strokeStyle = colors[0];
   this.context.fillStyle = colors[0];
+  this.context.moveTo(points[0].x, points[0].y);
+  this.context.lineTo(points[1].x, points[1].y);
+  this.context.lineTo(points[2].x, points[2].y);
+  this.context.lineTo(points[3].x, points[3].y);
+  this.context.lineTo(points[4].x, points[4].y);
+  this.context.lineTo(points[5].x, points[5].y);
+  this.context.closePath();
   this.context.fill();
 
-  // Pie piece with 2nd and 3rd color.
-  var oneThird = (2*Math.Pi)/3.0;
+  // Quadrilateral with 2nd color.
   this.context.beginPath(); 
-  this.context.moveTo(center.x, center.y);
-  this.context.arc(center.x, center.y, radius, startAngle, startAngle + Math.PI*(2.0/3.0), false);
-  this.context.lineTo(center.x, center.y);
-  this.context.closePath();
+  this.context.strokeStyle = colors[1];
   this.context.fillStyle = colors[1];
+  this.context.moveTo(center.x, center.y);
+  this.context.lineTo(points[2].x, points[2].y);
+  this.context.lineTo(points[3].x, points[3].y);
+  this.context.lineTo(points[4].x, points[4].y);
+  this.context.closePath();
   this.context.fill();
 
+  // Quadrilateral with 3rd color.
   this.context.beginPath(); 
-  this.context.moveTo(center.x, center.y);
-  this.context.arc(center.x, center.y, radius, startAngle + Math.PI*(2.0/3.0), startAngle + Math.PI*(4.0/3.0), false);
-  this.context.lineTo(center.x, center.y);
-  this.context.closePath();
+  this.context.strokeStyle = colors[2];
   this.context.fillStyle = colors[2];
+  this.context.moveTo(center.x, center.y);
+  this.context.lineTo(points[4].x, points[4].y);
+  this.context.lineTo(points[5].x, points[5].y);
+  this.context.lineTo(points[0].x, points[0].y);
+  this.context.closePath();
   this.context.fill();
 
   this.context.restore();
@@ -309,7 +329,7 @@ Board.prototype.CenterPoint = function(row, column) {
   return new Point(
       horizontalSpacing * (column) + (row % 2) * (horizontalSpacing/2) + radius,
       verticalSpacing * (row) + radius
-      );
+  );
 }
 
 Board.prototype.Shuffle = function() {
@@ -388,7 +408,8 @@ function newGame() {
   const maxRows = 40;
   const maxCols = 40;
   getParams();
-  if ((numCols >= 1) && (numCols <= maxCols) && (numRows >= 1) && (numRows <= maxRows)){
+  if ((numCols >= 1) && (numCols <= maxCols) &&
+      (numRows >= 1) && (numRows <= maxRows)){
     canvasDiv = document.getElementById('canvasDiv');
     if (board && clickHandler)
       canvasDiv.removeEventListener("click", clickHandler, false);
