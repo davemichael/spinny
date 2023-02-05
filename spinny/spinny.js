@@ -7,6 +7,7 @@ var horizontalSpacing = 44;
 var verticalSpacing = 38;
 //var numCols = Math.floor(canvasWidth / horizontalSpacing) - 1;
 //var numRows = Math.floor(canvasHeight / verticalSpacing) - 1;
+var kBackgroundColor = "#FFFFFF"
 var colors = ["#D81B60", "#1E88E5", "#F3CD5B"];
 var rotateTime = 100;
 
@@ -19,9 +20,10 @@ function Side() {
 
 function Ball() {
   this.sides = [new Side(), new Side(), new Side()];
+  this.locked = false;
 }
 
-Ball.prototype.Colors = function() {
+Ball.prototype.GetColors = function() {
   return [this.sides[0].color, this.sides[1].color, this.sides[2].color];
 }
 
@@ -42,7 +44,14 @@ Ball.prototype.Rotate = function(direction) {
     throw "Invalid direction, should be right or left: " + direction;
 }
 
-Ball.prototype.Color = function() {
+Ball.prototype.ToggleLock = function() {
+  this.locked = !this.locked;
+  return this.locked;
+}
+
+Ball.prototype.IsLocked = function() { return this.locked }
+
+Ball.prototype.ColorIn = function() {
   for (var i = 0; i < this.sides.length; ++i) {
     if (this.sides[i].neighbors.length)
       this.sides[i].color = this.sides[i].neighbors[0].color;
@@ -64,6 +73,15 @@ Ball.prototype.Color = function() {
   \   |   /
    \__|__/
 */
+
+function Point(x, y) {
+  this.x = x;
+  this.y = y;
+}
+
+Point.prototype.Add = function(dx, dy) {
+  return new Point(this.x + dx, this.y + dy);
+}
 
 function Board(rows, cols, seed, context) {
   this.balls = Array();
@@ -95,7 +113,7 @@ function Board(rows, cols, seed, context) {
       // Same row, to the left.
       addNeighbor(this.balls[i][j].sides[2], i, j - 1, 1);
 
-      this.balls[i][j].Color();
+      this.balls[i][j].ColorIn();
     }
   }
   this.context = context;
@@ -103,9 +121,22 @@ function Board(rows, cols, seed, context) {
 
 Board.prototype.RotateBall = function(row, col, direction) {
   var ball = this_.balls[rowCol.row][rowCol.col];
-  var oldColors = ball.Colors();
+  if (ball.IsLocked()) return;
+  var oldColors = ball.GetColors();
   ball.Rotate(direction);
   this_.Animate(rowCol.row, rowCol.col, oldColors, direction);
+}
+
+Board.prototype.ToggleLock = function(row, col) {
+  var ball = this_.balls[rowCol.row][rowCol.col];
+  var colors = ball.GetColors();
+  is_locked = ball.ToggleLock();
+  if (is_locked) {
+    this_.DrawLock_(rowCol.row, rowCol.col, colors);
+  } else {
+    this_.DrawLock_(rowCol.row, rowCol.col, [kBackgroundColor, kBackgroundColor, kBackgroundColor]);
+    this_.DrawBall_(rowCol.row, rowCol.col, colors);
+  }
 }
 
 // TODO: Move to prototype
@@ -120,8 +151,14 @@ Board.prototype.makeClickHandler = function() {
     var leftOffset = 10;  // this too
     rowCol = this_.PointToBall(mouse_event.clientX - leftOffset,
                                mouse_event.clientY - topOffset);
-    if (!rowCol)
+    if (!rowCol) {
+      // No ball was clicked; ignore.
       return;
+    }
+    if (mouse_event.ctrlKey) {
+      this_.ToggleLock(rowCol.row, rowCol.col);
+      return;
+    }
     var timeSinceLastClick = mouse_event.timeStamp - timeOfLastClick;
     timeOfLastClick = mouse_event.timeStamp;
     if (timeSinceLastClick < doubleClickTime) {
@@ -145,8 +182,59 @@ Board.prototype.DrawBall_ = function(row, column, colors, rotation) {
   this.context.save();
   var center = this.CenterPoint(row, column);
   var startAngle = (-1.0/6.0)*Math.PI + rotation;
-
+  
   // Full circle with first color.
+  this.context.beginPath();
+  this.context.moveTo(center.x, center.y);
+  this.context.arc(center.x, center.y, radius, 0, 2*Math.PI, false);
+  this.context.lineTo(center.x, center.y);
+  this.context.closePath();
+  this.context.fillStyle = colors[0];
+  this.context.fill();
+
+  // Pie piece with 2nd and 3rd color.
+  var oneThird = (2*Math.Pi)/3.0;
+  this.context.beginPath(); 
+  this.context.moveTo(center.x, center.y);
+  this.context.arc(center.x, center.y, radius, startAngle, startAngle + Math.PI*(2.0/3.0), false);
+  this.context.lineTo(center.x, center.y);
+  this.context.closePath();
+  this.context.fillStyle = colors[1];
+  this.context.fill();
+
+  this.context.beginPath(); 
+  this.context.moveTo(center.x, center.y);
+  this.context.arc(center.x, center.y, radius, startAngle + Math.PI*(2.0/3.0), startAngle + Math.PI*(4.0/3.0), false);
+  this.context.lineTo(center.x, center.y);
+  this.context.closePath();
+  this.context.fillStyle = colors[2];
+  this.context.fill();
+
+  this.context.restore();
+}
+
+Board.prototype.DrawLock_ = function(row, column, colors) {
+  this.context.save();
+  var center = this.CenterPoint(row, column);
+  var startAngle = (-1.0/6.0)*Math.PI;
+  
+  // The circle is embedded in the hexagon; each edge of the hexagon
+  // is a tangent line segment whose center is on the circle.
+  //          1 ^
+  //          /   \         _ca is r long
+  //        /      /\       Lacb is 2Pi/12, Lcab is a right angle
+  //    0 /      r/  _\b    tan(Lacb) = _ab/r
+  //     |       / _-  |    _ab = r * tan(2Pi/12)
+  //     |      c------|a   b = (c[0] + r, c[1] + r*tan(2Pi/12))
+  //     |          r  |
+  //    5 \           / 3
+  //        \       /
+  //          \   /
+  //            v 4
+  ab_dist
+  points = [center.Add(-horizontalSpacing/2, )]]
+
+  // Full hex with first color.
   this.context.beginPath();
   this.context.moveTo(center.x, center.y);
   this.context.arc(center.x, center.y, radius, 0, 2*Math.PI, false);
@@ -179,7 +267,7 @@ Board.prototype.DrawBall_ = function(row, column, colors, rotation) {
 Board.prototype.Draw = function() {
   for (var i = 0; i < this.balls.length; ++i)
     for (var j = 0; j < this.balls[i].length; ++j)
-      this.DrawBall_(i, j, this.balls[i][j].Colors());
+      this.DrawBall_(i, j, this.balls[i][j].GetColors());
 }
 
 Board.prototype.Animate = function(row, column, oldColors, direction) {
@@ -205,16 +293,23 @@ Board.prototype.Animate = function(row, column, oldColors, direction) {
 }
 
 Board.prototype.Solved = function() {
-  const win_messages = ["Winner!!!1!!","Congratulations, you won!!","Good work","Nice job","Thank you for playing","Great job"];
-  alert(win_messages[Math.floor(Math.random()*win_messages.length)]);
+  const win_messages = [
+    "Winner!!!1!!",
+    "Congratulations, you won!!",
+    "Good work",
+    "Nice job",
+    "Thank you for playing",
+    "Great job"
+  ];
+  alert(win_messages[Math.floor(Math.random() * win_messages.length)]);
   // TODO(dmichael): Make an animation
 }
 
 Board.prototype.CenterPoint = function(row, column) {
-  var center = new Object;
-  center.x = horizontalSpacing * (column) + (row % 2) * (horizontalSpacing/2) + radius;
-  center.y = verticalSpacing * (row) + radius;
-  return center;
+  return new Point(
+      horizontalSpacing * (column) + (row % 2) * (horizontalSpacing/2) + radius,
+      verticalSpacing * (row) + radius
+      );
 }
 
 Board.prototype.Shuffle = function() {
@@ -274,24 +369,24 @@ function Init() {
 }
 // sets the difficulty to easy
 function makeEasy(){
-  setParams(3,3);
+  setParams(3, 3);
   newGame()
   }
 // sets difficulty to medium
 function makeMedium(){
-  setParams(6,5);
+  setParams(6, 5);
   newGame()
   }
 // sets difficulty to hard
 function makeHard(){
-  setParams(10,10);
+  setParams(10, 10);
   newGame();
   }
 var board = undefined;
 var clickHandler = undefined;
 function newGame() {
-  const maxRows = 30;
-  const maxCols = 30;
+  const maxRows = 40;
+  const maxCols = 40;
   getParams();
   if ((numCols >= 1) && (numCols <= maxCols) && (numRows >= 1) && (numRows <= maxRows)){
     canvasDiv = document.getElementById('canvasDiv');
@@ -317,7 +412,7 @@ function newGame() {
     }
     if (numCols > maxCols) 
     {
-      errorMessage = errorMessage+"No more than "+maxCols+" columns";
+      errorMessage = errorMessage+"No more than " + maxCols + " columns";
     }
     if (numRows < 1) 
     {
@@ -325,7 +420,7 @@ function newGame() {
     }
     if (numRows > maxRows) 
     {
-      errorMessage = errorMessage+" No more than "+maxRows+" rows";
+      errorMessage = errorMessage+" No more than " + maxRows + " rows";
     }
     alert(errorMessage);
   }
