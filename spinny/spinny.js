@@ -1,12 +1,20 @@
-var canvasHeight = 400;
-var canvasWidth = 400;
-var radius = 22;
-var centerRadius = 8;
-var holeRadius = 10;
-var horizontalSpacing = 44;
-var verticalSpacing = 38;
-//var numCols = Math.floor(canvasWidth / horizontalSpacing) - 1;
-//var numRows = Math.floor(canvasHeight / verticalSpacing) - 1;
+const radius = 22;
+const horizontalSpacing = 2 * radius;
+const hex_edge = Math.sqrt(4.0/3.0) * radius;
+const verticalSpacing = hex_edge * 1.5;
+// The circle is embedded in the hexagon; each edge of the hexagon
+// is a tangent line segment whose center is on the circle.
+//          1 ^ b
+//          / | \ a       ca is r long
+//        /   |  /\       Lcab is a right angle
+//    0 /     |r/   \     A regular hexagon is made up of 6 equilateral
+//     |      |/     |    triangles, so ab is half the length of cb.
+//     |      c------|a   Use the pythagorean theorem to get...
+//     |          r  |    cb = sqrt(4/3) * r
+//    5 \           / 3
+//        \       /
+//          \   /
+//            v 4
 var kBackgroundColor = "#FFFFFF"
 var colors = ["#D81B60", "#1E88E5", "#F3CD5B"];
 var rotateTime = 100;
@@ -132,7 +140,6 @@ Board.prototype.ToggleLock = function(row, col) {
   const colors = ball.GetColors();
   is_locked = ball.ToggleLock();
   if (is_locked) {
-    // TODO: Animate
     this_.DrawLock_(row, col, colors);
   } else {
     const all_bg = [kBackgroundColor, kBackgroundColor, kBackgroundColor];
@@ -148,11 +155,7 @@ Board.prototype.makeClickHandler = function() {
   this_ = this;
   var doubleClickTime = 200;
   return function onClick(mouse_event) {
-    // First, compute which ball (if any) was clicked.
-    var topOffset = 10;  // TODO(dmichael): Compute properly
-    var leftOffset = 10;  // this too
-    rowCol = this_.PointToBall(mouse_event.clientX - leftOffset,
-                               mouse_event.clientY - topOffset);
+    rowCol = this_.PointToBall(mouse_event.clientX, mouse_event.clientY);
     if (!rowCol) {
       // No ball was clicked; ignore.
       return;
@@ -222,30 +225,14 @@ Board.prototype.DrawLock_ = function(row, column, colors) {
   this.context.save();
   var center = this.CenterPoint(row, column);
   
-  // The circle is embedded in the hexagon; each edge of the hexagon
-  // is a tangent line segment whose center is on the circle.
-  //          1 ^ b
-  //          / | \ a       ca is r long
-  //        /   |  /\       Lcab is a right angle
-  //    0 /     |r/   \     A regular hexagon is made up of 6 equilateral
-  //     |      |/     |    triangles, so ab is half the length of cb.
-  //     |      c------|a   Use the pythagorean theorem to get...
-  //     |          r  |    cb = sqrt(4/3) * r
-  //    5 \           / 3
-  //        \       /
-  //          \   /
-  //            v 4
-  const dy = Math.sqrt(4.0/3.0) * radius;
-  const half_dy = dy / 2.0;
   var points = [
-	  center.Add(-radius, -half_dy),
-	  center.Add(0, -dy),
-	  center.Add(radius, -half_dy),
-	  center.Add(radius, half_dy),
-	  center.Add(0, dy),
-	  center.Add(-radius, half_dy)
+	  center.Add(-radius, -hex_edge/2.0),
+	  center.Add(0, -hex_edge),
+	  center.Add(radius, -hex_edge/2.0),
+	  center.Add(radius, hex_edge/2.0),
+	  center.Add(0, hex_edge),
+	  center.Add(-radius, hex_edge/2.0)
   ];
-  console.log(points);
 
   // Full hex with first color.
   this.context.beginPath();
@@ -358,8 +345,12 @@ Board.prototype.Check = function() {
   return true;
 }
 
-// Get the ball at (x,y), or undefined if there is none.
-Board.prototype.PointToBall = function(x, y) {
+// Get the ball at (x,y), or undefined if there is none. Note that the inputs
+// are clientX/clientY and do not yet account for scrolling or scaling.
+Board.prototype.PointToBall = function(clientX, clientY) {
+  var rect = this.context.canvas.getBoundingClientRect();
+  var x = (clientX - rect.left) / (rect.right - rect.left) * this.context.canvas.width;
+  var y = (clientY - rect.top) / (rect.bottom - rect.top) * this.context.canvas.height;
   // TODO(dmichael): Could compute this directly instead of searching.
   for (var i = 0; i < this.balls.length; ++i) {
     for (var j = 0; j < this.balls[i].length; ++j) {
@@ -414,8 +405,8 @@ function newGame() {
     canvasDiv = document.getElementById('canvasDiv');
     if (board && clickHandler)
       canvasDiv.removeEventListener("click", clickHandler, false);
-    var canvasWidth = (numCols - 1) * horizontalSpacing + radius * 2;
-    var canvasHeight = (numRows - 1) * verticalSpacing + radius * 2;
+    const canvasWidth = (numCols - 1) * horizontalSpacing + hex_edge * 2;
+    const canvasHeight = (numRows - 1) * verticalSpacing + hex_edge * 2;
     var canvas = document.getElementById('canvasId');
     canvas.width = canvasWidth;
     canvas.height = canvasHeight;
