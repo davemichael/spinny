@@ -7,7 +7,7 @@ var horizontalSpacing = 44;
 var verticalSpacing = 38;
 //var numCols = Math.floor(canvasWidth / horizontalSpacing) - 1;
 //var numRows = Math.floor(canvasHeight / verticalSpacing) - 1;
-var colors = ["FCAF3E", "729FCF", "8AE234"];
+var colors = ["#D81B60", "#1E88E5", "#F3CD5B"];
 var rotateTime = 100;
 
 document.addEventListener("DOMContentLoaded", Init, false);
@@ -205,7 +205,8 @@ Board.prototype.Animate = function(row, column, oldColors, direction) {
 }
 
 Board.prototype.Solved = function() {
-  alert("Winner!!!1!!");
+  const win_messages = ["Winner!!!1!!","Congratulations, you won!!","Good work","Nice job","Thank you for playing","Great job"];
+  alert(win_messages[Math.floor(Math.random()*win_messages.length)]);
   // TODO(dmichael): Make an animation
 }
 
@@ -254,12 +255,15 @@ Board.prototype.PointToBall = function(x, y) {
   }
   return undefined;
 }
-
 var numRows = undefined;
 var numCols = undefined;
 function getParams() {
   numRows = document.getElementById('numRows').value;
   numCols = document.getElementById('numCols').value;
+}
+function setParams(numRows,numCols) {
+  document.getElementById('numRows').value = numRows
+  document.getElementById('numCols').value = numCols;
 }
 
 
@@ -268,24 +272,61 @@ function Init() {
   var context = canvas.getContext("2d");
   newGame();
 }
-
+// sets the difficulty to easy
+function makeEasy(){
+  setParams(3,3);
+  newGame()
+  }
+// sets difficulty to medium
+function makeMedium(){
+  setParams(6,5);
+  newGame()
+  }
+// sets difficulty to hard
+function makeHard(){
+  setParams(10,10);
+  newGame();
+  }
 var board = undefined;
 var clickHandler = undefined;
 function newGame() {
-  canvasDiv = document.getElementById('canvasDiv');
-  if (board && clickHandler)
-    canvasDiv.removeEventListener("click", clickHandler, false);
+  const maxRows = 30;
+  const maxCols = 30;
   getParams();
-  var canvasWidth = (numCols - 1) * horizontalSpacing + radius * 2;
-  var canvasHeight = (numRows - 1) * verticalSpacing + radius * 2;
-  var canvas = document.getElementById('canvasId');
-  canvas.width = canvasWidth;
-  canvas.height = canvasHeight;
-  var context = canvas.getContext("2d");
-  board = new Board(numRows, numCols, 0, context);
-  clickHandler = board.makeClickHandler();
-  canvasDiv.addEventListener("click", clickHandler, false);
-  board.Shuffle();
-  context.clearRect(0, 0, canvasWidth, canvasHeight);
-  board.Draw();
+  if ((numCols >= 1) && (numCols <= maxCols) && (numRows >= 1) && (numRows <= maxRows)){
+    canvasDiv = document.getElementById('canvasDiv');
+    if (board && clickHandler)
+      canvasDiv.removeEventListener("click", clickHandler, false);
+    var canvasWidth = (numCols - 1) * horizontalSpacing + radius * 2;
+    var canvasHeight = (numRows - 1) * verticalSpacing + radius * 2;
+    var canvas = document.getElementById('canvasId');
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
+    var context = canvas.getContext("2d");
+    board = new Board(numRows, numCols, 0, context);
+    clickHandler = board.makeClickHandler();
+    canvasDiv.addEventListener("click", clickHandler, false);
+    board.Shuffle();
+    context.clearRect(0, 0, canvasWidth, canvasHeight);
+    board.Draw();
+  } else {
+    var errorMessage = "";
+    if (numCols < 1) 
+    {
+      errorMessage = errorMessage+"Columns must be more than 0";
+    }
+    if (numCols > maxCols) 
+    {
+      errorMessage = errorMessage+"No more than "+maxCols+" columns";
+    }
+    if (numRows < 1) 
+    {
+      errorMessage = errorMessage+" Rows must be more than 0";
+    }
+    if (numRows > maxRows) 
+    {
+      errorMessage = errorMessage+" No more than "+maxRows+" rows";
+    }
+    alert(errorMessage);
+  }
 }

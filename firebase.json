@@ -1,0 +1,10 @@
+{
+  "hosting": {
+    "public": "spinny",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ]
+  }
+}
