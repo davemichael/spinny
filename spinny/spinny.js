@@ -26,6 +26,8 @@ function Side() {
   this.neighbors = Array();
 }
 
+// Ball is the "model" for each spinny circle or hex. Display code should go
+// elsewhere.
 function Ball() {
   this.sides = [new Side(), new Side(), new Side()];
   this.locked = false;

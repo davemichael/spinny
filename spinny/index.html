@@ -1,8 +1,17 @@
 <!DOCTYPE html>
+  <script  type="importmap">{
+	"imports": {
+		"three": "https://threejs.org/build/three.module.js",
+		"view3d": "./view3d.js"
+	}
+}
+</script>
+
 <html>
   <head>
     <title>Spinny</title>
     <script type="text/javascript" src="spinny.js"></script>
+    <script type="module" src="view3d.js"></script>
   </head>
   <body>
     <div id="canvasDiv">
@@ -20,6 +29,26 @@
         <button type="button" onclick="makeEasy()">Easy</button>
         <button type="button" onclick="makeMedium()">Medium</button>
         <button type="button" onclick="makeHard()">Hard</button>
+      </label>
+    </form>
+    <canvas id="c"></canvas>
+    <form>
+      <label for="3d_test">
+        <input type="number" name="xRotation" id="xRotation"
+              min="-100" max="100" step="0.157" value="0">X rotation</input>
+        <input type="number" name="yRotation" id="yRotation"
+               min="-100" max="100" step="0.157" value="0">Y rotation</input>
+        <input type="number" name="zRotation" id="zRotation"
+               min="-100" max="100" step="0.157" value="0">Z rotation</input>
+        <br/>
+        <input type="number" name="xCamera" id="xCamera"
+               min="100" max="100" step="0.5" value="0">X camera position</input>
+        <input type="number" name="yCamera" id="yCamera"
+               min="100" max="100" step="0.5" value="0">Y camera position</input>
+        <input type="number" name="zCamera" id="zCamera"
+               min="100" max="100" step="0.5" value="2">Z camera position</input>
+        <br/>
+        <button type="button" onclick="animate3d()">Render</button>
       </label>
     </form>
   </body>
