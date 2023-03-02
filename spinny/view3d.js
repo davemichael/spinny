@@ -1,12 +1,13 @@
 import * as THREE from 'three';
 
-function makeCubeGeometry(edgeLength, colors) {
+function makeCubeGeometry(edgeLength) { //, colors) {
   const h = edgeLength/2.0;  // half length
-  const geometry = new THREE.BufferGeometry();
+  const geometry0 = new THREE.BufferGeometry();
+  const geometry1 = new THREE.BufferGeometry();
+  const geometry2 = new THREE.BufferGeometry();
   // The a cube face and adjacent triangles on faces behind it, extending from
   // the bottom-left.
-  const vertices = new Float32Array( [
-      // color 0
+  const vertices0 = new Float32Array( [
       -h, h, h, // front-face, bottom-left
       -h, -h, h,
       h, -h, h,
@@ -22,8 +23,9 @@ function makeCubeGeometry(edgeLength, colors) {
       -h, -h, -h, // left-face, front-bottom
       -h, -h, h,
       -h, h, h,
+  ]);
 
-      // color 1
+  const vertices1 = new Float32Array( [
       h, h, h, // right-face, front-bottom
       h, -h, h,
       h, -h, -h,
@@ -39,8 +41,8 @@ function makeCubeGeometry(edgeLength, colors) {
       h, h, -h, // back-face, bottom-right
       h, -h, -h,
       -h, -h, -h,
-
-      // color 2
+  ]);
+  const vertices2 = new Float32Array( [
       -h, h, h, // top-face, front-right
       h, h, h,
       h, h, -h,
@@ -57,7 +59,7 @@ function makeCubeGeometry(edgeLength, colors) {
       -h, h, -h,
       h, h, -h,
   ] );
-  const norms = new Float32Array( [
+  const norms0 = new Float32Array( [
       // color 0
       0, 0, -1,  // front-face, bottom-left
       0, 0, -1,
@@ -74,7 +76,8 @@ function makeCubeGeometry(edgeLength, colors) {
       -1, 0, 0,  // left-face, front-bottom
       -1, 0, 0,
       -1, 0, 0,
-
+  ]);
+  const norms1 = new Float32Array( [
       // color 1
       1, 0, 0, // right-face, front-bottom
       1, 0, 0,
@@ -91,7 +94,8 @@ function makeCubeGeometry(edgeLength, colors) {
       0, 0, 1, // back-face, bottom-right
       0, 0, 1,
       0, 0, 1,
-
+  ]);
+  const norms2 = new Float32Array( [
       // color 2
       0, 1, 0, // top-face, front-right
       0, 1, 0,
@@ -109,80 +113,51 @@ function makeCubeGeometry(edgeLength, colors) {
       0, 0, 1,
       0, 0, 1,
   ]);
-  const color0_r = colors[0] >>> 16;
-  const color1_r = colors[1] >>> 16;
-  const color2_r = colors[2] >>> 16;
-  const color0_g = (colors[0] >>> 8) & 0xff;
-  const color1_g = (colors[1] >>> 8) & 0xff;
-  const color2_g = (colors[2] >>> 8) & 0xff;
-  const color0_b = colors[0] & 0xff;
-  const color1_b = colors[1] & 0xff;
-  const color2_b = colors[2] & 0xff;
-  const color_buff = new Uint8Array([
-      // color 0
-      color0_r, color0_g, color0_b,
-      color0_r, color0_g, color0_b,
-      color0_r, color0_g, color0_b,
-      color0_r, color0_g, color0_b,
-      color0_r, color0_g, color0_b,
-      color0_r, color0_g, color0_b,
-      color0_r, color0_g, color0_b,
-      color0_r, color0_g, color0_b,
-      color0_r, color0_g, color0_b,
-      color0_r, color0_g, color0_b,
-      color0_r, color0_g, color0_b,
-      color0_r, color0_g, color0_b,
-
-      // color 1
-      color1_r, color1_g, color1_b,
-      color1_r, color1_g, color1_b,
-      color1_r, color1_g, color1_b,
-      color1_r, color1_g, color1_b,
-      color1_r, color1_g, color1_b,
-      color1_r, color1_g, color1_b,
-      color1_r, color1_g, color1_b,
-      color1_r, color1_g, color1_b,
-      color1_r, color1_g, color1_b,
-      color1_r, color1_g, color1_b,
-      color1_r, color1_g, color1_b,
-      color1_r, color1_g, color1_b,
-
-      // color 2
-      color2_r, color2_g, color2_b,
-      color2_r, color2_g, color2_b,
-      color2_r, color2_g, color2_b,
-      color2_r, color2_g, color2_b,
-      color2_r, color2_g, color2_b,
-      color2_r, color2_g, color2_b,
-      color2_r, color2_g, color2_b,
-      color2_r, color2_g, color2_b,
-      color2_r, color2_g, color2_b,
-      color2_r, color2_g, color2_b,
-      color2_r, color2_g, color2_b,
-      color2_r, color2_g, color2_b,
-  ]);
-  geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
-  geometry.setAttribute('normal', new THREE.BufferAttribute(norms, 3));
-  geometry.setAttribute('color', new THREE.BufferAttribute(color_buff, 3));
-  return geometry;
+  geometry0.setAttribute('position', new THREE.BufferAttribute(vertices0, 3));
+  geometry0.setAttribute('normal', new THREE.BufferAttribute(norms0, 3));
+  geometry1.setAttribute('position', new THREE.BufferAttribute(vertices1, 3));
+  geometry1.setAttribute('normal', new THREE.BufferAttribute(norms1, 3));
+  geometry2.setAttribute('position', new THREE.BufferAttribute(vertices2, 3));
+  geometry2.setAttribute('normal', new THREE.BufferAttribute(norms2, 3));
+  return [geometry0, geometry1, geometry2];
 }
 
-function makeCube(colors) {
-  const geometry = makeCubeGeometry(1.0, colors);
-  const material = new THREE.MeshBasicMaterial({vertexColors: true});
-  // material.wireframe = true;
-  // material.opacity = 0.2;
+function makeCube(colors, translation) {
+  const geometry = makeCubeGeometry(1.0);
+  const material0 = new THREE.MeshPhongMaterial({  wireframe: false, color: colors[0]});
+  const material1 = new THREE.MeshPhongMaterial({  wireframe: false, color: colors[1]});
+  const material2 = new THREE.MeshPhongMaterial({  wireframe: false, color: colors[2]});
+
+  const mesh0 = new THREE.Mesh( geometry[0], material0);
+  const mesh1 = new THREE.Mesh( geometry[1], material1);
+  const mesh2 = new THREE.Mesh( geometry[2], material2);
+  /*mesh0.rotation.x = Math.Pi / 4.0;
+  mesh0.rotation.y = Math.Pi / 4.0;
+  mesh1.rotation.x = Math.Pi / 4.0;
+  mesh1.rotation.y = Math.Pi / 4.0;
+  mesh2.rotation.x = Math.Pi / 4.0;
+  mesh2.rotation.y = Math.Pi / 4.0;*/
+
+  var pivot = new THREE.Object3D();
+  pivot.position.x += translation[0];
+  pivot.position.y += translation[1];
+  pivot.position.z += translation[2];
+
+  pivot.add(mesh0);
+  pivot.add(mesh1);
+  pivot.add(mesh2);
+  pivot.rotation.x =  Math.Pi / 4.0;
+  pivot.rotation.y =  Math.Pi / 4.0;
+  return pivot;
+}
+
+/*function makeLines() {
+  const geometry = makeCubeGeometry(1.0, [0xffffff, 0xffffff, 0xffffff]);
+  const material = new THREE.MeshBasicMaterial();
+  material.wireframe = true;
   const mesh = new THREE.Mesh( geometry, material );
   return mesh;
-}
-
-function makeLines(lineColor, colors) {
-  const edges = new THREE.EdgesGeometry(makeCubeGeometry(1.3, colors));
-  const material = new THREE.LineBasicMaterial({ color: lineColor });
-  material.wireframe = true;
-  const lines = new THREE.LineSegments(edges, material);
-  return lines;
-}
+}*/
 
 function animate3d() {
   const canvas = document.querySelector('#c');
@@ -190,23 +165,22 @@ function animate3d() {
   canvas.height = 500;
   const renderer = new THREE.WebGLRenderer({antialias: true, canvas});
 
-  const fov = 75;
-  const aspect = 1;  // the canvas default
   const near = 0.1;
-  const far = 5;
-  // const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
-  const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, near, far);
+  const far = 50;
+  const camera = new THREE.OrthographicCamera(-5, 5, 5, -5, near, far);
   // camera.position.z = 2;
 
   const scene = new THREE.Scene();
-  const light = new THREE.PointLight( 0x808080, 5, 100 );
-  light.position.set( 10, 10, 10 );
-  scene.add( light );
-  const colors = [0x800000, 0x008000, 0x000080]
-  const cube = makeCube(colors);
+  scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 0.9)
+  directionalLight.position.x = 1;
+  directionalLight.position.y = 1;
+  directionalLight.position.z = 1;
+  scene.add(directionalLight);
+  const colors = [0xff0000, 0x00ff00, 0x0000ff]
+  const cube = makeCube(colors, [2, 2, 0]);
   scene.add(cube);
-  const lines = makeLines(0xffffff, colors);
-  // scene.add(lines);
+  scene.add(makeCube(colors, [0, 0, 0]));
 
   function render(time) {
     time *= 0.001;  // convert time to seconds
@@ -220,14 +194,14 @@ function animate3d() {
      const rotation_speed = 1;
     // cube.rotation.x = time * rotation_speed;
     // cube.rotation.y = time * rotation_speed;
-     lines.rotation.x = time * rotation_speed;
-     lines.rotation.y = time * rotation_speed;
+    // lines.rotation.x = time * rotation_speed;
+    // lines.rotation.y = time * rotation_speed;
     cube.rotation.x = xRotation;
     cube.rotation.y = yRotation;
     cube.rotation.z = zRotation;
-    lines.rotation.x = xRotation;
-    lines.rotation.y = yRotation;
-    lines.rotation.z = zRotation;
+    // lines.rotation.x = xRotation;
+    // lines.rotation.y = yRotation;
+    // lines.rotation.z = zRotation;
 
     camera.position.x = xCamera;
     camera.position.y = yCamera;
