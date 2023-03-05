@@ -341,12 +341,12 @@ Controller.prototype.newGame = function() {
   getParams();
   this.viewDiv_ = document.getElementById('viewDiv');
   // TODO Making new game getting too many clicks
-  if (this.board_ && this.clickHandler_)
+  if (this.clickHandler_)
     this.viewDiv_.removeEventListener("click", this.clickHandler_, false);
   this.board_ = new Board(numRows, numCols, /* seed=*/ 0);
   this.view_ = new View2d(this.viewDiv_, numRows, numCols);
-  clickHandler = this.makeClickHandler();
-  this.viewDiv_.addEventListener("click", clickHandler, false);
+  this.clickHandler_ = this.makeClickHandler();
+  this.viewDiv_.addEventListener("click", this.clickHandler_, false);
 
   this.board_.Shuffle();
   this.Draw();
