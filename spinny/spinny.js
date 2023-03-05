@@ -1,7 +1,3 @@
-const radius = 22;
-const horizontalSpacing = 2 * radius;
-const hex_edge = Math.sqrt(4.0/3.0) * radius;
-const verticalSpacing = hex_edge * 1.5;
 const maxRows = 40;
 const maxCols = 40;
 
@@ -12,12 +8,19 @@ const maxCols = 40;
 //        /   |  /\       Lcab is a right angle
 //    0 /     |r/   \     A regular hexagon is made up of 6 equilateral
 //     |      |/     |    triangles, so ab is half the length of cb.
-//     |      c------|a   Use the pythagorean theorem to get...
-//     |          r  |    cb = sqrt(4/3) * r
-//    5 \           / 3
-//        \       /
+//     |      c------|a   Use the pythagorean theorem:
+//     |          r  |    cb^2 = (cb/2)^2 + r^2
+//    5 \           / 3   ...
+//        \       /       cb = sqrt(4/3) * r
 //          \   /
 //            v 4
+const kHexRatio = Math.sqrt(4.0/3.0);
+// The hex is made up of 6 equilateral triangles of length r * kHexRatio.
+// Each hex is 2 * r * kHexRatio tall.
+// When packed, hexes overlap by half a hex edge.
+const kVerticalSpacingCoefficient = 1.5 * kHexRatio;
+const kMarginCoefficient = kVerticalSpacingCoefficient - 1.0;
+
 var kBackgroundColor = "#FFFFFF"
 var colors = ["#D81B60", "#1E88E5", "#F3CD5B"];
 var rotateTime = 100;
@@ -162,7 +165,7 @@ function getParams() {
   numRows = document.getElementById('numRows').value;
   numCols = document.getElementById('numCols').value;
   numRows = Math.min(Math.max(numRows, 1), maxRows);
-  numCols = Math.min(Math.max(numCols, 1), maxCols);
+  numCols = Math.min(Math.max(numCols, 2), maxCols);
 }
 function setParams(numRows,numCols) {
   document.getElementById('numRows').value = numRows
@@ -170,6 +173,11 @@ function setParams(numRows,numCols) {
 }
 
 function View2d(view_div, numRows, numCols) {
+  this.radius = 22;
+  this.hex_edge = kHexRatio * this.radius;
+  this.horizontalSpacing = 2 * this.radius;
+  this.verticalSpacing = this.radius * kVerticalSpacingCoefficient;
+  
   const oldView = document.getElementById("canvasId");
   if (oldView) oldView.remove();
 
@@ -179,8 +187,9 @@ function View2d(view_div, numRows, numCols) {
   this.context_ = this.canvas_.getContext("2d");
   this.view_div_.appendChild(this.canvas_);
 
-  const canvasHeight = (numRows - 1) * verticalSpacing + hex_edge * 2;
-  const canvasWidth = (numCols - 1) * horizontalSpacing + hex_edge * 2;
+  const canvasHeight = numRows * this.verticalSpacing +
+                       2 * kMarginCoefficient * this.radius;
+  const canvasWidth = numCols * this.horizontalSpacing;
   this.canvas_.width = canvasWidth;
   this.canvas_.height = canvasHeight;
   this.context_.clearRect(0, 0, canvasWidth, canvasHeight);
@@ -188,27 +197,11 @@ function View2d(view_div, numRows, numCols) {
 
 View2d.prototype.CenterPoint = function(row, column) {
   return new Point(
-      horizontalSpacing * (column) + (row % 2) * (horizontalSpacing/2) + radius,
-      verticalSpacing * (row) + radius
+      this.horizontalSpacing * column +
+	  (row % 2) * (this.horizontalSpacing/2) +
+	  this.radius,
+      this.verticalSpacing * row + this.radius * (1 + kMarginCoefficient)
   );
-}
-
-// Get the ball at (x,y), or undefined if there is none. Note that the inputs
-// are clientX/clientY and do not yet account for scrolling or scaling.
-// x and y range from 0 to 1.0, as a fraction of the drawing area.
-View2d.prototype.PointToBall = function(x, y, board) {
-  x *= this.context_.canvas.width;
-  y *= this.context_.canvas.height
-  // TODO(dmichael): Could compute this directly instead of searching.
-  for (var i = 0; i < board.balls.length; ++i) {
-    for (var j = 0; j < board.balls[i].length; ++j) {
-      center = this.CenterPoint(i, j);
-      dx = center.x - x; dy = center.y - y;
-      if (dx * dx + dy * dy <= radius * radius)
-        return {"row": i, "col": j};
-    }
-  }
-  return undefined;
 }
 
 View2d.prototype.DrawBall = function(row, column, colors, rotation) {
@@ -223,7 +216,7 @@ View2d.prototype.DrawBall = function(row, column, colors, rotation) {
   this.context_.strokeStyle = colors[0];
   this.context_.fillStyle = colors[0];
   this.context_.moveTo(center.x, center.y);
-  this.context_.arc(center.x, center.y, radius, 0, 2*Math.PI, false);
+  this.context_.arc(center.x, center.y, this.radius, 0, 2*Math.PI, false);
   this.context_.lineTo(center.x, center.y);
   this.context_.closePath();
   this.context_.fill();
@@ -234,7 +227,7 @@ View2d.prototype.DrawBall = function(row, column, colors, rotation) {
   this.context_.strokeStyle = colors[1];
   this.context_.fillStyle = colors[1];
   this.context_.moveTo(center.x, center.y);
-  this.context_.arc(center.x, center.y, radius, startAngle, startAngle + Math.PI*(2.0/3.0), false);
+  this.context_.arc(center.x, center.y, this.radius, startAngle, startAngle + Math.PI*(2.0/3.0), false);
   this.context_.lineTo(center.x, center.y);
   this.context_.closePath();
   this.context_.fill();
@@ -243,7 +236,7 @@ View2d.prototype.DrawBall = function(row, column, colors, rotation) {
   this.context_.strokeStyle = colors[2];
   this.context_.fillStyle = colors[2];
   this.context_.moveTo(center.x, center.y);
-  this.context_.arc(center.x, center.y, radius, startAngle + Math.PI*(2.0/3.0), startAngle + Math.PI*(4.0/3.0), false);
+  this.context_.arc(center.x, center.y, this.radius, startAngle + Math.PI*(2.0/3.0), startAngle + Math.PI*(4.0/3.0), false);
   this.context_.lineTo(center.x, center.y);
   this.context_.closePath();
   this.context_.fill();
@@ -256,12 +249,12 @@ View2d.prototype.DrawLock = function(row, column, colors) {
   var center = this.CenterPoint(row, column);
   
   var points = [
-	  center.Add(-radius, -hex_edge/2.0),
-	  center.Add(0, -hex_edge),
-	  center.Add(radius, -hex_edge/2.0),
-	  center.Add(radius, hex_edge/2.0),
-	  center.Add(0, hex_edge),
-	  center.Add(-radius, hex_edge/2.0)
+	  center.Add(-this.radius, -this.hex_edge/2.0),
+	  center.Add(0, -this.hex_edge),
+	  center.Add(this.radius, -this.hex_edge/2.0),
+	  center.Add(this.radius, this.hex_edge/2.0),
+	  center.Add(0, this.hex_edge),
+	  center.Add(-this.radius, this.hex_edge/2.0)
   ];
 
   // Full hex with first color.
@@ -306,7 +299,8 @@ View2d.prototype.Clear = function(row, column, color) {
   this.DrawLock(row, column, [color, color, color]);
 }
 
-function Controller(view, board) {
+function Controller() {
+  this.canvas_ = undefined;
   this.view_ = undefined;
   this.board_ = undefined;
   this.clickHandler_ = undefined;
@@ -336,15 +330,22 @@ function makeHard(){
   setParams(10, 10);
   controller.newGame();
 }
+function newGame() {
+  controller.newGame();
+}
 
 Controller.prototype.newGame = function() {
   getParams();
-  this.viewDiv_ = document.getElementById('viewDiv');
-  // TODO Making new game getting too many clicks
-  if (this.clickHandler_)
-    this.viewDiv_.removeEventListener("click", this.clickHandler_, false);
+  // getParams clamps to the min/max; update the fields on the page.
+  setParams(numRows, numCols);
+
   this.board_ = new Board(numRows, numCols, /* seed=*/ 0);
   this.view_ = new View2d(this.viewDiv_, numRows, numCols);
+  // The view constructor might re-create the canvas, so we must fetch after.
+  this.canvas_ = document.getElementById('canvasId');
+
+  if (this.clickHandler_)
+    this.viewDiv_.removeEventListener("click", this.clickHandler_, false);
   this.clickHandler_ = this.makeClickHandler();
   this.viewDiv_.addEventListener("click", this.clickHandler_, false);
 
@@ -352,15 +353,57 @@ Controller.prototype.newGame = function() {
   this.Draw();
 }
 
+// Get the ball at (x,y), or undefined if there is none. Note that the inputs
+// are clientX/clientY and do not yet account for scrolling or scaling.
+// x and y range from 0 to 1.0, as a fraction of the drawing area.
+Controller.prototype.PointToBall = function(clientX, clientY) {
+  // Convert from clientX/clientY to page x/y. We don't worry about what the
+  // canvas thinks its width is internally; we assume the view drew the balls in
+  // an evenly spaced fashion.
+  var rect = this_.canvas_.getBoundingClientRect();
+  const width = rect.right - rect.left;
+  const height = rect.bottom - rect.top;
+  const horizontalSpacing = width / numCols;
+  const radius = horizontalSpacing / 2.0;
+  // We have to account for the margin left at the top & bottom that makes sure
+  // the hex can be fully drawn.
+  //   height = numRows * verticalSpacing + 2 * kMarginCoefficient * radius
+  // so
+  const verticalSpacing = (height - 2 * kMarginCoefficient * radius) / numRows;
+  const x = clientX - rect.left;
+  const y = clientY - rect.top - radius * kMarginCoefficient;
+
+  // return the row/col if in the ball, undefined otherwise.
+  function ContainingBall(row) {
+    const column = Math.floor((x - (row % 2) * radius) / horizontalSpacing);
+    if (row < 0 || row >= numRows || column < 0 || column >= numCols)
+      return undefined;
+    centerX = horizontalSpacing * (column) +
+		  (row % 2) * radius +  // Account for odd rows
+	          radius;  // Move from edge to center
+    // our Y coordinates are after subtracting the margin.
+    centerY = verticalSpacing * (row) + radius;
+
+    dx = centerX - x; dy = centerY - y;
+    if (dx * dx + dy * dy <= radius * radius)
+      return {"row": row, "col": column};
+    return undefined;
+  }
+
+  // There are rows of pixels that interesect two rows of balls; test both.
+  const approxRow = y / verticalSpacing;
+  var maybeBall = ContainingBall(Math.floor(approxRow));
+  if (maybeBall) return maybeBall;
+  maybeBall = ContainingBall(Math.ceil(approxRow));
+  if (maybeBall) return maybeBall;
+}
+
+
 Controller.prototype.makeClickHandler = function() {
   this_ = this;
   const doubleClickTime = 200;
   return function onClick(mouse_event) {
-    // FIXME this is too wrapped up with view
-    var rect = this_.view_.canvas_.getBoundingClientRect();
-    const x = (mouse_event.clientX - rect.left) / (rect.right - rect.left);
-    const y = (mouse_event.clientY - rect.top) / (rect.bottom - rect.top);
-    rowCol = this_.view_.PointToBall(x, y, this_.board_);
+    rowCol = this_.PointToBall(mouse_event.clientX, mouse_event.clientY);
     if (!rowCol) {
       // No ball was clicked; ignore.
       return;
@@ -447,7 +490,6 @@ Controller.prototype.Solved = function() {
     "Great job"
   ];
   alert(win_messages[Math.floor(Math.random() * win_messages.length)]);
-  // TODO(dmichael): Make an animation
 }
 
 

@@ -14,13 +14,15 @@
     <script type="module" src="view3d.js"></script>
   </head>
   <body>
-    <div id="viewDiv"></div>
+    <div id="viewDiv">
+      <canvas id="canvasId"></canvas>
+    </div>
     <form>
       <label for="game_board">
         <input type="number" name="numRows" id="numRows"
                min="1" max="30" step="1" value="6">Rows</input>
         <input type="number" name="numCols" id="numCols"
-               min="1" max="30" step="1" value="5">Columns</input>
+               min="2" max="30" step="1" value="5">Columns</input>
         <button type="button" onclick="newGame()">New Game</button>
         <br/>
         <br/>
