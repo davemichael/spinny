@@ -1,8 +1,8 @@
 import * as THREE from 'three';
+import * as Const from "constants";
 
 function makeCubeGeometry(edgeLength) {
   const h = edgeLength/2.0;
-  // const dx = Math.sqrt(2.0/3.0);
   const geometry0 = new THREE.BufferGeometry();
   const geometry1 = new THREE.BufferGeometry();
   const geometry2 = new THREE.BufferGeometry();
@@ -122,11 +122,49 @@ function makeCubeGeometry(edgeLength) {
   return [geometry0, geometry1, geometry2];
 }
 
-function makeCube(colors, translation) {
-  const geometry = makeCubeGeometry(1.0);
-  const material0 = new THREE.MeshPhongMaterial({  wireframe: false, color: colors[0]});
+function makeSphere(radius, colors, translation) {
+  // Sweep out three thirds of a sphere about the Z axis.
+  const geometry_top = new THREE.SphereGeometry(radius, 32, 16,
+      0, 2*Math.PI / 3, 0, 2 * Math.PI);
+  const geometry_right = new THREE.SphereGeometry(radius, 32, 16,
+      4*Math.PI / 3, 2 * Math.PI, 0, 2 * Math.PI);
+  // WTF??? This seems to work, but the angles aren't right:
+  const geometry_left = new THREE.SphereGeometry(radius, 32, 16,
+      2 * Math.PI / 3, 2.01 * Math.PI / 3, 0, 2 * Math.PI);
+  const material_top = new THREE.MeshPhongMaterial( { color: colors[0] } );
+  const material_right = new THREE.MeshPhongMaterial( { color: colors[1] } );
+  const material_left = new THREE.MeshPhongMaterial( { color: colors[2] } );
+  const sphere_top = new THREE.Mesh(geometry_top, material_top);
+  const sphere_right = new THREE.Mesh(geometry_right, material_right);
+  const sphere_left = new THREE.Mesh(geometry_left, material_left);
+  sphere_top.rotation.x = Math.PI / 2;
+  sphere_right.rotation.x = Math.PI / 2;
+  sphere_left.rotation.x = Math.PI / 2;
+  sphere_top.rotation.y = -5 * Math.PI / 6;
+  sphere_right.rotation.y = -5 * Math.PI / 6;
+  sphere_left.rotation.y = -5 * Math.PI / 6;
+  sphere_top.eulerOrder = 'YXZ';
+  sphere_left.eulerOrder = 'YXZ';
+  sphere_right.eulerOrder = 'YXZ';
+  var pivot = new THREE.Object3D();
+  pivot.position.x += translation[0];
+  pivot.position.y += translation[1];
+  pivot.position.z += translation[2];
+
+  pivot.add(sphere_top);
+  pivot.add(sphere_right);
+  pivot.add(sphere_left);
+  return pivot;
+}
+
+function makeCube(edge_length, colors, translation) {
+  const geometry = makeCubeGeometry(edge_length);
+  // We drew our faces front, right, top...  and then rotated so that the faces
+  // are ordered bottom-left, bottom-right, top. The controller expects
+  // top, bottom-right, bottom-left order.
+  const material0 = new THREE.MeshPhongMaterial({  wireframe: false, color: colors[2]});
   const material1 = new THREE.MeshPhongMaterial({  wireframe: false, color: colors[1]});
-  const material2 = new THREE.MeshPhongMaterial({  wireframe: false, color: colors[2]});
+  const material2 = new THREE.MeshPhongMaterial({  wireframe: false, color: colors[0]});
 
   const mesh0 = new THREE.Mesh( geometry[0], material0);
   const mesh1 = new THREE.Mesh( geometry[1], material1);
@@ -146,75 +184,126 @@ function makeCube(colors, translation) {
   pivot.add(mesh0);
   pivot.add(mesh1);
   pivot.add(mesh2);
-  // pivot.rotation.x =  Math.Pi / 4.0;
-  // pivot.rotation.y =  Math.Pi / 4.0;
   return pivot;
 }
 
-/*function makeLines() {
-  const geometry = makeCubeGeometry(1.0, [0xffffff, 0xffffff, 0xffffff]);
-  const material = new THREE.MeshBasicMaterial();
-  material.wireframe = true;
-  const mesh = new THREE.Mesh( geometry, material );
-  return mesh;
-}*/
-
-function animate3d() {
-  const canvas = document.querySelector('#c');
-  canvas.width = 500;
-  canvas.height = 500;
-  const renderer = new THREE.WebGLRenderer({antialias: true, canvas});
-
-  const near = 0.1;
-  const far = 50;
-  //const camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 0.1, 500);
-  const camera = new THREE.OrthographicCamera(-5, 5, 5, -5, near, far);
-  // camera.position.z = 2;
-
-  const scene = new THREE.Scene();
-  scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-  const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0)
-  directionalLight.position.x = 1;
-  directionalLight.position.y = 2;
-  directionalLight.position.z = 1;
-  scene.add(directionalLight);
-  const colors = [0xff0000, 0x00ff00, 0x0000ff]
-  const cube = makeCube(colors, [2, 2, 0]);
-  scene.add(cube);
-  const cube2 = makeCube(colors, [0, 0, 0]);
-  scene.add(cube2);
-  const cube3 = makeCube(colors, [-2, 2, 0]);
-  scene.add(cube3);
-
-  function render(time) {
-    time *= 0.001;  // convert time to seconds
-
-    const xRotation = document.getElementById('xRotation').value;
-    const yRotation = document.getElementById('yRotation').value;
-    const zRotation = document.getElementById('zRotation').value;
-    const xCamera = document.getElementById('xCamera').value;
-    const yCamera = document.getElementById('yCamera').value;
-    const zCamera = document.getElementById('zCamera').value;
-     const rotation_speed = 1;
-    // cube.rotation.z = time * rotation_speed;
-    // cube2.rotation.z = time * rotation_speed;
-    // cube3.rotation.z = time * rotation_speed;
-    cube.rotation.x = xRotation;
-    cube.rotation.y = yRotation;
-    cube.rotation.z = zRotation;
-
-    camera.position.x = xCamera;
-    camera.position.y = yCamera;
-    camera.position.z = zCamera;
-
-    renderer.render(scene, camera);
-
-    requestAnimationFrame(render);
+class Ball {
+  // Construct the Ball object that holds the renderable Object3D. It does not
+  // initially add anything to the scene.
+  constructor(radius, centerXY, scene) {
+    this.centerX_ = centerXY[0];
+    this.centerY_ = centerXY[1];
+    this.scene_ = scene;
+    this.object_ = undefined;
+    this.radius_ = radius;
+    // The sphere is inscribed in the cube, and the cubes are oriented
+    // edge-to-edge, not face-to-face... so it's the diagonal that has to match
+    // the diameter of the circle.
+    // edge^2 + edge^2 = diagonal^2
+    // edge = diagonal / sqrt(2)
+    this.edge_length_ =  2 * this.radius_ / Math.sqrt(2);
   }
-  requestAnimationFrame(render);
-
 }
 
-window.animate3d = animate3d;
+Ball.prototype.MakeLock = function(colors) {
+  if (this.object_) this.object_.removeFromParent();
+  this.object_ = makeCube(this.edge_length_, colors,
+                          [this.centerX_, this.centerY_, 0]);
+  this.scene_.add(this.object_);
+}
 
+Ball.prototype.MakeSphere = function(colors) {
+  if (this.object_) this.object_.removeFromParent();
+  this.object_ = makeSphere(this.radius_, colors,
+                            [this.centerX_, this.centerY_, 0]);
+  this.scene_.add(this.object_);
+}
+
+Ball.prototype.Rotate = function(angle) {
+  this.object_.rotation.z = -angle;
+}
+
+class View3d {
+  constructor(view_div, numRows, numCols) {
+    const oldView = document.getElementById("canvasId");
+    if (oldView) oldView.remove();
+  
+    this.canvas_ = document.createElement('canvas');
+    this.canvas_.id = "canvasId";
+    this.view_div_ = view_div
+    this.view_div_.appendChild(this.canvas_);
+
+    this.radius = 22;
+    this.hex_edge = Const.kHexRatio * this.radius;
+    this.horizontalSpacing = 2 * this.radius;
+    this.verticalSpacing = this.radius * Const.kVerticalSpacingCoefficient;
+    const canvasHeight = numRows * this.verticalSpacing +
+                         2 * Const.kMarginCoefficient * this.radius;
+    const canvasWidth = numCols * this.horizontalSpacing;
+    this.canvas_.width = canvasWidth;
+    this.canvas_.height = canvasHeight;
+
+    this.renderer_ = new THREE.WebGLRenderer({antialias: true,
+	                                     canvas: this.canvas_});
+  
+    const near = 0.1;
+    const far = 50;
+    //this.camera_ = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 0.1, 500);
+    this.camera_ = new THREE.OrthographicCamera(0, canvasWidth, 0, -canvasHeight, near, far);
+    // Push back the camera far enough to guarantee all cubes are visible.
+    this.camera_.position.z =
+        this.radius * Const.kVerticalSpacingCoefficient + 1;
+  
+    this.scene_ = new THREE.Scene();
+    this.scene_.add(new THREE.AmbientLight(0xffffff, 0.6));
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0)
+    directionalLight.position.x = 1;
+    directionalLight.position.y = 2;
+    directionalLight.position.z = 1;
+    this.scene_.add(directionalLight);
+
+    // Now build the balls / cubes. We don't know colors initially.
+    this.balls = Array();
+    for (var i = 0; i < numRows; ++i) {
+      this.balls[i] = Array();
+      for (var j = 0; j < numCols - i%2; ++j) {
+	var centerPoint = this._CenterPoint(i, j);
+        this.balls[i][j] =
+            new Ball(this.radius, [centerPoint[0], centerPoint[1]],
+                     this.scene_);
+      }
+    }
+  }
+}
+
+View3d.prototype._CenterPoint = function(row, column) {
+  return [
+      this.horizontalSpacing * column +
+	  (row % 2) * (this.horizontalSpacing/2) +
+	  this.radius,
+      -(this.verticalSpacing * row + this.radius * (1 + Const.kMarginCoefficient))
+  ];
+}
+
+View3d.prototype.MakeBall = function(row, column, colors) {
+  this.balls[row][column].MakeSphere(colors);
+}
+
+View3d.prototype.MakeLock = function(row, column, colors) {
+  this.balls[row][column].MakeLock(colors);
+}
+
+View3d.prototype.Rotate = function(row, column, old_colors, rotation) {
+  this.balls[row][column].Rotate(rotation);
+}
+
+View3d.prototype.Render = function() {
+  this.renderer_.render(this.scene_, this.camera_);
+}
+
+View3d.prototype.Clear = function(row, column, color) {
+  // Clearing is not required in the WebGL implementation.
+}
+
+export { View3d };
 
