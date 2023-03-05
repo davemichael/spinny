@@ -1,12 +1,11 @@
 import * as THREE from 'three';
 
-function makeCubeGeometry(edgeLength) { //, colors) {
-  const h = edgeLength/2.0;  // half length
+function makeCubeGeometry(edgeLength) {
+  const h = edgeLength/2.0;
+  // const dx = Math.sqrt(2.0/3.0);
   const geometry0 = new THREE.BufferGeometry();
   const geometry1 = new THREE.BufferGeometry();
   const geometry2 = new THREE.BufferGeometry();
-  // The a cube face and adjacent triangles on faces behind it, extending from
-  // the bottom-left.
   const vertices0 = new Float32Array( [
       -h, h, h, // front-face, bottom-left
       -h, -h, h,
@@ -59,6 +58,7 @@ function makeCubeGeometry(edgeLength) { //, colors) {
       -h, h, -h,
       h, h, -h,
   ] );
+
   const norms0 = new Float32Array( [
       // color 0
       0, 0, -1,  // front-face, bottom-left
@@ -131,12 +131,12 @@ function makeCube(colors, translation) {
   const mesh0 = new THREE.Mesh( geometry[0], material0);
   const mesh1 = new THREE.Mesh( geometry[1], material1);
   const mesh2 = new THREE.Mesh( geometry[2], material2);
-  /*mesh0.rotation.x = Math.Pi / 4.0;
-  mesh0.rotation.y = Math.Pi / 4.0;
-  mesh1.rotation.x = Math.Pi / 4.0;
-  mesh1.rotation.y = Math.Pi / 4.0;
-  mesh2.rotation.x = Math.Pi / 4.0;
-  mesh2.rotation.y = Math.Pi / 4.0;*/
+  mesh0.rotation.x = 0.61548; // tan(1 / sqrt(2))
+  mesh0.rotation.y = -Math.PI / 4.0;
+  mesh1.rotation.x = 0.61548;
+  mesh1.rotation.y = -Math.PI / 4.0;
+  mesh2.rotation.x = 0.61548;
+  mesh2.rotation.y = -Math.PI / 4.0;
 
   var pivot = new THREE.Object3D();
   pivot.position.x += translation[0];
@@ -146,8 +146,8 @@ function makeCube(colors, translation) {
   pivot.add(mesh0);
   pivot.add(mesh1);
   pivot.add(mesh2);
-  pivot.rotation.x =  Math.Pi / 4.0;
-  pivot.rotation.y =  Math.Pi / 4.0;
+  // pivot.rotation.x =  Math.Pi / 4.0;
+  // pivot.rotation.y =  Math.Pi / 4.0;
   return pivot;
 }
 
@@ -167,20 +167,24 @@ function animate3d() {
 
   const near = 0.1;
   const far = 50;
+  //const camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 0.1, 500);
   const camera = new THREE.OrthographicCamera(-5, 5, 5, -5, near, far);
   // camera.position.z = 2;
 
   const scene = new THREE.Scene();
   scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-  const directionalLight = new THREE.DirectionalLight(0xffffff, 0.9)
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0)
   directionalLight.position.x = 1;
-  directionalLight.position.y = 1;
+  directionalLight.position.y = 2;
   directionalLight.position.z = 1;
   scene.add(directionalLight);
   const colors = [0xff0000, 0x00ff00, 0x0000ff]
   const cube = makeCube(colors, [2, 2, 0]);
   scene.add(cube);
-  scene.add(makeCube(colors, [0, 0, 0]));
+  const cube2 = makeCube(colors, [0, 0, 0]);
+  scene.add(cube2);
+  const cube3 = makeCube(colors, [-2, 2, 0]);
+  scene.add(cube3);
 
   function render(time) {
     time *= 0.001;  // convert time to seconds
@@ -192,16 +196,12 @@ function animate3d() {
     const yCamera = document.getElementById('yCamera').value;
     const zCamera = document.getElementById('zCamera').value;
      const rotation_speed = 1;
-    // cube.rotation.x = time * rotation_speed;
-    // cube.rotation.y = time * rotation_speed;
-    // lines.rotation.x = time * rotation_speed;
-    // lines.rotation.y = time * rotation_speed;
+    // cube.rotation.z = time * rotation_speed;
+    // cube2.rotation.z = time * rotation_speed;
+    // cube3.rotation.z = time * rotation_speed;
     cube.rotation.x = xRotation;
     cube.rotation.y = yRotation;
     cube.rotation.z = zRotation;
-    // lines.rotation.x = xRotation;
-    // lines.rotation.y = yRotation;
-    // lines.rotation.z = zRotation;
 
     camera.position.x = xCamera;
     camera.position.y = yCamera;
