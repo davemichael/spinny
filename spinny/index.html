@@ -1,25 +1,39 @@
 <!DOCTYPE html>
+  <script  type="importmap">{
+	"imports": {
+		"three": "https://threejs.org/build/three.module.js",
+		"constants": "./constants.js",
+		"spinny": "./spinny.js",
+		"view2d": "./view2d.js",
+		"view3d": "./view3d.js"
+	}
+}
+</script>
+
 <html>
   <head>
     <title>Spinny</title>
-    <script type="text/javascript" src="spinny.js"></script>
+    <script type="module" src="spinny.js"></script>
+    <script type="module" src="view2d.js"></script>
+    <script type="module" src="view3d.js"></script>
   </head>
   <body>
-    <div id="canvasDiv">
+    <div id="viewDiv">
       <canvas id="canvasId"></canvas>
     </div>
     <form>
       <label for="game_board">
         <input type="number" name="numRows" id="numRows"
-               min="1" max="9" step="1" value="6">Rows</input>
+               min="1" max="30" step="1" value="6">Rows</input>
         <input type="number" name="numCols" id="numCols"
-               min="1" max="8" step="1" value="5">Columns</input>
+               min="2" max="30" step="1" value="5">Columns</input>
         <button type="button" onclick="newGame()">New Game</button>
         <br/>
         <br/>
         <button type="button" onclick="makeEasy()">Easy</button>
         <button type="button" onclick="makeMedium()">Medium</button>
         <button type="button" onclick="makeHard()">Hard</button>
+	<button type="button" onClick="toggleView()">Toggle 2d/3d View</button>
       </label>
     </form>
   </body>

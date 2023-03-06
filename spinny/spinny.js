@@ -1,23 +1,10 @@
-const radius = 22;
-const horizontalSpacing = 2 * radius;
-const hex_edge = Math.sqrt(4.0/3.0) * radius;
-const verticalSpacing = hex_edge * 1.5;
-// The circle is embedded in the hexagon; each edge of the hexagon
-// is a tangent line segment whose center is on the circle.
-//          1 ^ b
-//          / | \ a       ca is r long
-//        /   |  /\       Lcab is a right angle
-//    0 /     |r/   \     A regular hexagon is made up of 6 equilateral
-//     |      |/     |    triangles, so ab is half the length of cb.
-//     |      c------|a   Use the pythagorean theorem to get...
-//     |          r  |    cb = sqrt(4/3) * r
-//    5 \           / 3
-//        \       /
-//          \   /
-//            v 4
-var kBackgroundColor = "#FFFFFF"
-var colors = ["#D81B60", "#1E88E5", "#F3CD5B"];
-var rotateTime = 100;
+import * as V2D from 'view2d';
+import * as V3D from 'view3d';
+import * as Const from 'constants';
+
+const kBackgroundColor = "#FFFFFF"
+const colors = ["#D81B60", "#1E88E5", "#F3CD5B"];
+const rotateTime = 100;
 
 document.addEventListener("DOMContentLoaded", Init, false);
 
@@ -26,6 +13,8 @@ function Side() {
   this.neighbors = Array();
 }
 
+// Ball is the "model" for each spinny circle or hex. Display code should go
+// elsewhere.
 function Ball() {
   this.sides = [new Side(), new Side(), new Side()];
   this.locked = false;
@@ -38,12 +27,12 @@ Ball.prototype.GetColors = function() {
 Ball.prototype.Rotate = function(direction) {
   var times = 1;
   if (direction === "left") {
-    tempColor = this.sides[0].color;
+    const tempColor = this.sides[0].color;
     this.sides[0].color = this.sides[1].color;
     this.sides[1].color = this.sides[2].color;
     this.sides[2].color = tempColor;
   } else if (direction === "right") {
-    tempColor = this.sides[2].color;
+    const tempColor = this.sides[2].color;
     this.sides[2].color = this.sides[1].color;
     this.sides[1].color = this.sides[0].color;
     this.sides[0].color = tempColor;
@@ -82,16 +71,7 @@ Ball.prototype.ColorIn = function() {
    \__|__/
 */
 
-function Point(x, y) {
-  this.x = x;
-  this.y = y;
-}
-
-Point.prototype.Add = function(dx, dy) {
-  return new Point(this.x + dx, this.y + dy);
-}
-
-function Board(rows, cols, seed, context) {
+function Board(rows, cols, seed) {
   this.balls = Array();
   for (var i = 0; i < rows; ++i) {
     this.balls[i] = Array();
@@ -124,200 +104,6 @@ function Board(rows, cols, seed, context) {
       this.balls[i][j].ColorIn();
     }
   }
-  this.context = context;
-}
-
-Board.prototype.RotateBall = function(row, col, direction) {
-  var ball = this_.balls[row][col];
-  if (ball.IsLocked()) return;
-  var oldColors = ball.GetColors();
-  ball.Rotate(direction);
-  this_.Animate(row, col, oldColors, direction);
-}
-
-Board.prototype.ToggleLock = function(row, col) {
-  const ball = this_.balls[row][col];
-  const colors = ball.GetColors();
-  is_locked = ball.ToggleLock();
-  if (is_locked) {
-    this_.DrawLock_(row, col, colors);
-  } else {
-    const all_bg = [kBackgroundColor, kBackgroundColor, kBackgroundColor];
-    this_.DrawLock_(row, col, all_bg);
-    this_.DrawBall_(row, col, colors);
-  }
-}
-
-// TODO: Move to prototype
-var timeOfLastClick = 0;
-var singleClickTimer = undefined;
-Board.prototype.makeClickHandler = function() {
-  this_ = this;
-  var doubleClickTime = 200;
-  return function onClick(mouse_event) {
-    rowCol = this_.PointToBall(mouse_event.clientX, mouse_event.clientY);
-    if (!rowCol) {
-      // No ball was clicked; ignore.
-      return;
-    }
-    if (mouse_event.ctrlKey) {
-      this_.ToggleLock(rowCol.row, rowCol.col);
-      return;
-    }
-    var timeSinceLastClick = mouse_event.timeStamp - timeOfLastClick;
-    timeOfLastClick = mouse_event.timeStamp;
-    if (timeSinceLastClick < doubleClickTime) {
-      // Cancel the single-click timer:
-      if (singleClickTimer) {
-        window.clearTimeout(singleClickTimer);
-        singleClickTimer = undefined;
-      }
-      // Rotate left:
-      this_.RotateBall(rowCol.row, rowCol.col, "left");
-    } else {
-      singleClickTimer = window.setTimeout(this_.RotateBall, doubleClickTime,
-                                           rowCol.row, rowCol.col, "right");
-    }
-  }
-}
-
-Board.prototype.DrawBall_ = function(row, column, colors, rotation) {
-  if (!rotation)
-    rotation = 0;
-  this.context.save();
-  var center = this.CenterPoint(row, column);
-  var startAngle = (-1.0/6.0)*Math.PI + rotation;
-  
-  // Full circle with first color.
-  this.context.beginPath();
-  this.context.strokeStyle = colors[0];
-  this.context.fillStyle = colors[0];
-  this.context.moveTo(center.x, center.y);
-  this.context.arc(center.x, center.y, radius, 0, 2*Math.PI, false);
-  this.context.lineTo(center.x, center.y);
-  this.context.closePath();
-  this.context.fill();
-
-  // Pie piece with 2nd and 3rd color.
-  const oneThird = (2*Math.Pi)/3.0;
-  this.context.beginPath(); 
-  this.context.strokeStyle = colors[1];
-  this.context.fillStyle = colors[1];
-  this.context.moveTo(center.x, center.y);
-  this.context.arc(center.x, center.y, radius, startAngle, startAngle + Math.PI*(2.0/3.0), false);
-  this.context.lineTo(center.x, center.y);
-  this.context.closePath();
-  this.context.fill();
-
-  this.context.beginPath(); 
-  this.context.strokeStyle = colors[2];
-  this.context.fillStyle = colors[2];
-  this.context.moveTo(center.x, center.y);
-  this.context.arc(center.x, center.y, radius, startAngle + Math.PI*(2.0/3.0), startAngle + Math.PI*(4.0/3.0), false);
-  this.context.lineTo(center.x, center.y);
-  this.context.closePath();
-  this.context.fill();
-
-  this.context.restore();
-}
-
-Board.prototype.DrawLock_ = function(row, column, colors) {
-  this.context.save();
-  var center = this.CenterPoint(row, column);
-  
-  var points = [
-	  center.Add(-radius, -hex_edge/2.0),
-	  center.Add(0, -hex_edge),
-	  center.Add(radius, -hex_edge/2.0),
-	  center.Add(radius, hex_edge/2.0),
-	  center.Add(0, hex_edge),
-	  center.Add(-radius, hex_edge/2.0)
-  ];
-
-  // Full hex with first color.
-  this.context.beginPath();
-  this.context.strokeStyle = colors[0];
-  this.context.fillStyle = colors[0];
-  this.context.moveTo(points[0].x, points[0].y);
-  this.context.lineTo(points[1].x, points[1].y);
-  this.context.lineTo(points[2].x, points[2].y);
-  this.context.lineTo(points[3].x, points[3].y);
-  this.context.lineTo(points[4].x, points[4].y);
-  this.context.lineTo(points[5].x, points[5].y);
-  this.context.closePath();
-  this.context.fill();
-
-  // Quadrilateral with 2nd color.
-  this.context.beginPath(); 
-  this.context.strokeStyle = colors[1];
-  this.context.fillStyle = colors[1];
-  this.context.moveTo(center.x, center.y);
-  this.context.lineTo(points[2].x, points[2].y);
-  this.context.lineTo(points[3].x, points[3].y);
-  this.context.lineTo(points[4].x, points[4].y);
-  this.context.closePath();
-  this.context.fill();
-
-  // Quadrilateral with 3rd color.
-  this.context.beginPath(); 
-  this.context.strokeStyle = colors[2];
-  this.context.fillStyle = colors[2];
-  this.context.moveTo(center.x, center.y);
-  this.context.lineTo(points[4].x, points[4].y);
-  this.context.lineTo(points[5].x, points[5].y);
-  this.context.lineTo(points[0].x, points[0].y);
-  this.context.closePath();
-  this.context.fill();
-
-  this.context.restore();
-}
-
-Board.prototype.Draw = function() {
-  for (var i = 0; i < this.balls.length; ++i)
-    for (var j = 0; j < this.balls[i].length; ++j)
-      this.DrawBall_(i, j, this.balls[i][j].GetColors());
-}
-
-Board.prototype.Animate = function(row, column, oldColors, direction) {
-  var startTime = window.performance.now();
-  var this_ = this;
-  function drawFrame(time) {
-    if ((time - startTime) >= rotateTime) {
-      window.cancelAnimationFrame(id);
-      percent = 1.0;
-      if (this_.Check())
-        window.setTimeout(this_.Solved, 0)
-    }
-    else {
-      percent = (time - startTime) / rotateTime;
-      requestAnimationFrame(drawFrame);
-    }
-    if (direction === "left")
-      percent = -percent;
-    rotation = percent * 2 * Math.PI / 3
-    this_.DrawBall_(row, column, oldColors, rotation);
-  }
-  var id = window.requestAnimationFrame(drawFrame);
-}
-
-Board.prototype.Solved = function() {
-  const win_messages = [
-    "Winner!!!1!!",
-    "Congratulations, you won!!",
-    "Good work",
-    "Nice job",
-    "Thank you for playing",
-    "Great job"
-  ];
-  alert(win_messages[Math.floor(Math.random() * win_messages.length)]);
-  // TODO(dmichael): Make an animation
-}
-
-Board.prototype.CenterPoint = function(row, column) {
-  return new Point(
-      horizontalSpacing * (column) + (row % 2) * (horizontalSpacing/2) + radius,
-      verticalSpacing * (row) + radius
-  );
 }
 
 Board.prototype.Shuffle = function() {
@@ -345,96 +131,243 @@ Board.prototype.Check = function() {
   return true;
 }
 
-// Get the ball at (x,y), or undefined if there is none. Note that the inputs
-// are clientX/clientY and do not yet account for scrolling or scaling.
-Board.prototype.PointToBall = function(clientX, clientY) {
-  var rect = this.context.canvas.getBoundingClientRect();
-  var x = (clientX - rect.left) / (rect.right - rect.left) * this.context.canvas.width;
-  var y = (clientY - rect.top) / (rect.bottom - rect.top) * this.context.canvas.height;
-  // TODO(dmichael): Could compute this directly instead of searching.
-  for (var i = 0; i < this.balls.length; ++i) {
-    for (var j = 0; j < this.balls[i].length; ++j) {
-      center = this.CenterPoint(i, j);
-      dx = center.x - x; dy = center.y - y;
-      if (dx * dx + dy * dy <= radius * radius)
-        return {"row": i, "col": j};
-    }
-  }
-  return undefined;
-}
 var numRows = undefined;
 var numCols = undefined;
 function getParams() {
   numRows = document.getElementById('numRows').value;
   numCols = document.getElementById('numCols').value;
+  numRows = Math.min(Math.max(numRows, 1), Const.kMaxRows);
+  numCols = Math.min(Math.max(numCols, 2), Const.kMaxCols);
 }
 function setParams(numRows,numCols) {
   document.getElementById('numRows').value = numRows
   document.getElementById('numCols').value = numCols;
 }
 
+function Controller() {
+  this.canvas_ = undefined;
+  this.view_ = undefined;
+  this.view3d_ = false;
+  this.board_ = undefined;
+  this.clickHandler_ = undefined;
+  this.viewDiv_ = document.getElementById('viewDiv');
+  var timeOfLastClick_ = 0;
+  var singleClickTimer_ = undefined;
+}
 
+var controller;
 function Init() {
-  var canvas = document.getElementById('canvasId');
-  var context = canvas.getContext("2d");
-  newGame();
+  controller = new Controller();
+  controller.newGame();
 }
+
 // sets the difficulty to easy
-function makeEasy(){
+window.makeEasy = function() {
   setParams(3, 3);
-  newGame()
-  }
+  controller.newGame()
+}
 // sets difficulty to medium
-function makeMedium(){
+window.makeMedium = function() {
   setParams(6, 5);
-  newGame()
-  }
+    controller.newGame()
+}
 // sets difficulty to hard
-function makeHard(){
+window.makeHard = function() {
   setParams(10, 10);
-  newGame();
-  }
-var board = undefined;
-var clickHandler = undefined;
-function newGame() {
-  const maxRows = 40;
-  const maxCols = 40;
+  controller.newGame();
+}
+window.newGame = function() {
+  controller.newGame();
+}
+window.toggleView = function() {
+  controller.toggleView();
+}
+
+Controller.prototype.newGame = function() {
   getParams();
-  if ((numCols >= 1) && (numCols <= maxCols) &&
-      (numRows >= 1) && (numRows <= maxRows)){
-    canvasDiv = document.getElementById('canvasDiv');
-    if (board && clickHandler)
-      canvasDiv.removeEventListener("click", clickHandler, false);
-    const canvasWidth = (numCols - 1) * horizontalSpacing + hex_edge * 2;
-    const canvasHeight = (numRows - 1) * verticalSpacing + hex_edge * 2;
-    var canvas = document.getElementById('canvasId');
-    canvas.width = canvasWidth;
-    canvas.height = canvasHeight;
-    var context = canvas.getContext("2d");
-    board = new Board(numRows, numCols, 0, context);
-    clickHandler = board.makeClickHandler();
-    canvasDiv.addEventListener("click", clickHandler, false);
-    board.Shuffle();
-    context.clearRect(0, 0, canvasWidth, canvasHeight);
-    board.Draw();
+  // getParams clamps to the min/max; update the fields on the page.
+  setParams(numRows, numCols);
+
+  this.board_ = new Board(numRows, numCols, /* seed=*/ 0);
+  this._ResetView();
+
+  if (this.clickHandler_)
+    this.viewDiv_.removeEventListener("click", this.clickHandler_, false);
+  this.clickHandler_ = this.makeClickHandler();
+  this.viewDiv_.addEventListener("click", this.clickHandler_, false);
+
+  this.board_.Shuffle();
+  this.DrawInitial();
+}
+
+Controller.prototype._ResetView = function() {
+  if (this.view3d_) {
+    this.view_ = new V3D.View3d(this.viewDiv_, numRows, numCols);
   } else {
-    var errorMessage = "";
-    if (numCols < 1) 
-    {
-      errorMessage = errorMessage+"Columns must be more than 0";
+    this.view_ = new V2D.View2d(this.viewDiv_, numRows, numCols);
+  }
+  // The view constructor might re-create the canvas, so we must fetch after.
+  this.canvas_ = document.getElementById('canvasId');
+}
+
+Controller.prototype.toggleView = function() {
+  this.view3d_ = !this.view3d_;
+  this._ResetView();
+  this.DrawInitial();
+}
+
+// Get the ball at (x,y), or undefined if there is none. Note that the inputs
+// are clientX/clientY and do not yet account for scrolling or scaling.
+// x and y range from 0 to 1.0, as a fraction of the drawing area.
+Controller.prototype.PointToBall = function(clientX, clientY) {
+  // Convert from clientX/clientY to page x/y. We don't worry about what the
+  // canvas thinks its width is internally; we assume the view drew the balls in
+  // an evenly spaced fashion.
+  var rect = this.canvas_.getBoundingClientRect();
+  const width = rect.right - rect.left;
+  const height = rect.bottom - rect.top;
+  const horizontalSpacing = width / numCols;
+  const radius = horizontalSpacing / 2.0;
+  // We have to account for the margin left at the top & bottom that makes sure
+  // the hex can be fully drawn.
+  //   height = numRows * verticalSpacing + 2 * kMarginCoefficient * radius
+  // so
+  const verticalSpacing = (height - 2 * Const.kMarginCoefficient * radius) / numRows;
+  const x = clientX - rect.left;
+  const y = clientY - rect.top - radius * Const.kMarginCoefficient;
+
+  // return the row/col if in the ball, undefined otherwise.
+  function ContainingBall(row) {
+    const column = Math.floor((x - (row % 2) * radius) / horizontalSpacing);
+    if (row < 0 || row >= numRows || column < 0 || column >= numCols)
+      return undefined;
+    const centerX = horizontalSpacing * (column) +
+                    (row % 2) * radius +  // Account for odd rows
+		    radius;  // Move from edge to center
+    // our Y coordinates are after subtracting the margin.
+   const centerY = verticalSpacing * (row) + radius;
+
+    const dx = centerX - x; const dy = centerY - y;
+    if (dx * dx + dy * dy <= radius * radius)
+      return {"row": row, "col": column};
+    return undefined;
+  }
+
+  // There are rows of pixels that interesect two rows of balls; test both.
+  const approxRow = y / verticalSpacing;
+  var maybeBall = ContainingBall(Math.floor(approxRow));
+  if (maybeBall) return maybeBall;
+  maybeBall = ContainingBall(Math.ceil(approxRow));
+  if (maybeBall) return maybeBall;
+}
+
+
+Controller.prototype.makeClickHandler = function() {
+  const this_ = this;
+  const doubleClickTime = 200;
+  return function onClick(mouse_event) {
+    const rowCol = this_.PointToBall(mouse_event.clientX, mouse_event.clientY);
+    if (!rowCol) {
+      // No ball was clicked; ignore.
+      return;
     }
-    if (numCols > maxCols) 
-    {
-      errorMessage = errorMessage+"No more than " + maxCols + " columns";
+    if (mouse_event.ctrlKey || mouse_event.metaKey) {
+      this_.ToggleLock(rowCol.row, rowCol.col);
+      return;
     }
-    if (numRows < 1) 
-    {
-      errorMessage = errorMessage+" Rows must be more than 0";
+    var timeSinceLastClick = mouse_event.timeStamp - this_.timeOfLastClick_;
+    this_.timeOfLastClick_ = mouse_event.timeStamp;
+    if (timeSinceLastClick < doubleClickTime) {
+      // Cancel the single-click timer:
+      if (this_.singleClickTimer_) {
+        window.clearTimeout(this_.singleClickTimer_);
+        this_.singleClickTimer_ = undefined;
+      }
+      // Rotate left:
+      this_.RotateBall(rowCol.row, rowCol.col, "left");
+    } else {
+      this_.singleClickTimer_ =
+          window.setTimeout(function() {
+		  this_.RotateBall(rowCol.row, rowCol.col, "right")
+	  }, doubleClickTime);
     }
-    if (numRows > maxRows) 
-    {
-      errorMessage = errorMessage+" No more than " + maxRows + " rows";
-    }
-    alert(errorMessage);
   }
 }
+
+Controller.prototype.RotateBall = function(row, col, direction) {
+  const ball = this.board_.balls[row][col];
+  if (ball.IsLocked()) return;
+  var oldColors = ball.GetColors();
+  ball.Rotate(direction);
+  const this_ = this;
+  this.Animate(row, col, oldColors, direction, function() {
+    // Make sure we get a correctly drawn last frame...  and effectively resets
+    // the rotation to 0.
+    this_.view_.MakeBall(row, col, ball.GetColors());
+    this_.view_.Render();
+  });
+}
+
+Controller.prototype.ToggleLock = function(row, col) {
+  const ball = this.board_.balls[row][col];
+  const colors = ball.GetColors();
+  const is_locked = ball.ToggleLock();
+  if (is_locked) {
+    this.view_.MakeLock(row, col, colors);
+  } else {
+    this.view_.Clear(row, col, kBackgroundColor);
+    this.view_.MakeBall(row, col, colors);
+  }
+  this.view_.Render();
+}
+
+Controller.prototype.DrawInitial = function() {
+  for (var i = 0; i < this.board_.balls.length; ++i)
+    for (var j = 0; j < this.board_.balls[i].length; ++j)
+      if (this.board_.balls[i][j].IsLocked()) {
+        this.view_.MakeLock(i, j, this.board_.balls[i][j].GetColors());
+      } else {
+        this.view_.MakeBall(i, j, this.board_.balls[i][j].GetColors());
+      }
+  this.view_.Render();
+}
+
+Controller.prototype.Animate = function(row, column, oldColors, direction,
+	                                complete_fn) {
+  var startTime = window.performance.now();
+  var this_ = this;
+  function drawFrame(time) {
+    if ((time - startTime) >= rotateTime) {
+      window.cancelAnimationFrame(id);
+      percent = 1.0;
+      complete_fn();
+      if (this_.board_.Check())
+        window.setTimeout(this_.Solved, 0)
+      return;
+    }
+    else {
+      var percent = (time - startTime) / rotateTime;
+      requestAnimationFrame(drawFrame);
+    }
+    if (direction === "left")
+      percent = -percent;
+    const rotation = percent * 2 * Math.PI / 3
+    this_.view_.Rotate(row, column, oldColors, rotation);
+    this_.view_.Render();
+  }
+  const id = window.requestAnimationFrame(drawFrame);
+}
+
+Controller.prototype.Solved = function() {
+  const win_messages = [
+    "Winner!!!1!!",
+    "Congratulations, you won!!",
+    "Good work",
+    "Nice job",
+    "Thank you for playing",
+    "Great job"
+  ];
+  alert(win_messages[Math.floor(Math.random() * win_messages.length)]);
+}
+
+
