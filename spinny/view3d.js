@@ -127,10 +127,9 @@ function makeSphere(radius, colors, translation) {
   const geometry_top = new THREE.SphereGeometry(radius, 32, 16,
       0, 2*Math.PI / 3, 0, 2 * Math.PI);
   const geometry_right = new THREE.SphereGeometry(radius, 32, 16,
-      4*Math.PI / 3, 2 * Math.PI, 0, 2 * Math.PI);
-  // WTF??? This seems to work, but the angles aren't right:
+      4*Math.PI / 3, 2 * Math.PI / 3, 0, 2 * Math.PI);
   const geometry_left = new THREE.SphereGeometry(radius, 32, 16,
-      2 * Math.PI / 3, 2.01 * Math.PI / 3, 0, 2 * Math.PI);
+      2 * Math.PI / 3, 2 * Math.PI / 3, 0, 2 * Math.PI);
   const material_top = new THREE.MeshPhongMaterial( { color: colors[0] } );
   const material_right = new THREE.MeshPhongMaterial( { color: colors[1] } );
   const material_left = new THREE.MeshPhongMaterial( { color: colors[2] } );
