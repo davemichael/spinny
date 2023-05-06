@@ -245,9 +245,8 @@ class View3d {
     this.renderer_ = new THREE.WebGLRenderer({antialias: true,
 	                                     canvas: this.canvas_});
   
-    const near = 0.1;
-    const far = 50;
-    //this.camera_ = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 0.1, 500);
+    const near = -Const.kHexRatio * 2 * this.radius;
+    const far = Const.kHexRatio * 2 * this.radius;
     this.camera_ = new THREE.OrthographicCamera(0, canvasWidth, 0, -canvasHeight, near, far);
     // Push back the camera far enough to guarantee all cubes are visible.
     this.camera_.position.z =
